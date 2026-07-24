@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>BMI Calculator</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: white;
+            width: 350px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #cccccc;
+            border-radius: 6px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #result {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9f5ff;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        #error {
+            margin-top: 15px;
+            color: red;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>BMI Calculator</h1>
+
+    <form id="bmiForm">
+        <label for="weight">Weight in kilograms:</label>
+        <input
+            type="number"
+            id="weight"
+            placeholder="Example: 68"
+            min="20.1"
+            step="0.1"
+            required
+        >
+
+        <label for="height">Height in meters:</label>
+        <input
+            type="number"
+            id="height"
+            placeholder="Example: 1.68"
+            min="0.1"
+            step="0.01"
+            required
+        >
+
+        <button type="submit">Calculate BMI</button>
+    </form>
+
+    <div id="result">
+        <h2>Your Result</h2>
+        <p>BMI: <strong id="bmiValue"></strong></p>
+        <p>Status: <strong id="bmiMessage"></strong></p>
+    </div>
+
+    <div id="error"></div>
+</div>
+<script>
+    const form = document.getElementById("bmiForm");
+    const resultBox = document.getElementById("result");
+    const errorBox = document.getElementById("error");
+
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const weight = document.getElementById("weight").value;
+        const height = document.getElementById("height").value;
+
+        resultBox.style.display = "none";
+        errorBox.textContent = "";
+
+        const apiUrl =
+            `http://127.0.0.1:8000/bmi?weight=${weight}&height=${height}`;
+
+        try {
+            const response = await fetch(apiUrl);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(JSON.stringify(errorData.detail));
+            }
+
+            const data = await response.json();
+
+            document.getElementById("bmiValue").textContent = data.bmi;
+            document.getElementById("bmiMessage").textContent = data.message;
+
+            resultBox.style.display = "block";
+
+        } catch (error) {
+            console.error(error);
+
+            errorBox.textContent =
+                "Could not connect to the API. Make sure FastAPI is running on port 8000.";
+        }
+    });
+</script>
+
+
+</body>
+</html>

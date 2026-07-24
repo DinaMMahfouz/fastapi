@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Student performance grade prediction dashboard powered by FastAPI and PyCaret." />
+  <title>Student Performance Predictor</title>
+
+  <style>
+    :root {
+      --bg-1: #07111f;
+      --bg-2: #101b33;
+      --card: rgba(255, 255, 255, 0.09);
+      --card-border: rgba(255, 255, 255, 0.15);
+      --text: #f7f9ff;
+      --muted: #aab6d3;
+      --accent: #8b5cf6;
+      --accent-2: #22d3ee;
+      --success: #34d399;
+      --danger: #fb7185;
+      --warning: #fbbf24;
+      --shadow: 0 25px 80px rgba(0, 0, 0, 0.38);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 15%, rgba(139, 92, 246, 0.28), transparent 30%),
+        radial-gradient(circle at 85% 18%, rgba(34, 211, 238, 0.20), transparent 28%),
+        radial-gradient(circle at 50% 90%, rgba(59, 130, 246, 0.16), transparent 35%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.2;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      top: -100px;
+      left: -80px;
+      background: var(--accent);
+    }
+
+    body::after {
+      right: -100px;
+      bottom: -120px;
+      background: var(--accent-2);
+    }
+
+    .page-shell {
+      position: relative;
+      z-index: 1;
+      width: min(1240px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand-icon {
+      width: 50px;
+      height: 50px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 10px 30px rgba(34, 211, 238, 0.25);
+      font-size: 24px;
+    }
+
+    .brand h1 {
+      font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+      letter-spacing: -0.02em;
+    }
+
+    .brand p {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .api-status {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 14px;
+      border: 1px solid var(--card-border);
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      backdrop-filter: blur(14px);
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--warning);
+      box-shadow: 0 0 14px currentColor;
+    }
+
+    .status-dot.online {
+      background: var(--success);
+    }
+
+    .status-dot.offline {
+      background: var(--danger);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .glass-card {
+      border: 1px solid var(--card-border);
+      background: var(--card);
+      backdrop-filter: blur(22px);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius-lg);
+    }
+
+    .intro-card {
+      padding: clamp(26px, 4vw, 48px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .intro-card::after {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      right: -120px;
+      bottom: -130px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow:
+        0 0 0 30px rgba(255, 255, 255, 0.03),
+        0 0 0 65px rgba(255, 255, 255, 0.02);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      width: fit-content;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(139, 92, 246, 0.17);
+      border: 1px solid rgba(167, 139, 250, 0.25);
+      color: #ddd6fe;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .intro-card h2 {
+      max-width: 720px;
+      margin-top: 20px;
+      font-size: clamp(2.1rem, 5vw, 4.8rem);
+      line-height: 0.98;
+      letter-spacing: -0.055em;
+    }
+
+    .gradient-text {
+      color: transparent;
+      background: linear-gradient(90deg, #c4b5fd, #67e8f9, #93c5fd);
+      background-clip: text;
+      -webkit-background-clip: text;
+    }
+
+    .intro-card .lead {
+      margin-top: 22px;
+      max-width: 660px;
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 1rem;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .stat {
+      padding: 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.25rem;
+      margin-bottom: 4px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .result-card {
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+
+    .result-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .result-heading h3 {
+      font-size: 1.1rem;
+    }
+
+    .result-badge {
+      padding: 7px 11px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      color: #a5f3fc;
+      background: rgba(34, 211, 238, 0.12);
+      border: 1px solid rgba(34, 211, 238, 0.22);
+    }
+
+    .result-empty,
+    .result-content {
+      flex: 1;
+      min-height: 330px;
+      border-radius: 22px;
+      border: 1px dashed rgba(255, 255, 255, 0.17);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 26px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
+    }
+
+    .result-empty .icon {
+      width: 76px;
+      height: 76px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 16px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(34, 211, 238, 0.15));
+      font-size: 34px;
+    }
+
+    .result-empty h4 {
+      margin-bottom: 8px;
+      font-size: 1.2rem;
+    }
+
+    .result-empty p {
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 0.9rem;
+    }
+
+    .result-content {
+      display: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-content.show {
+      display: grid;
+      animation: rise 0.45s ease;
+    }
+
+    .grade-orb {
+      width: 145px;
+      height: 145px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow:
+        0 0 0 12px rgba(255, 255, 255, 0.045),
+        0 25px 65px rgba(34, 211, 238, 0.24);
+      font-size: 4.2rem;
+      font-weight: 900;
+      letter-spacing: -0.08em;
+    }
+
+    .result-title {
+      font-size: 1.45rem;
+      margin-bottom: 8px;
+    }
+
+    .result-subtitle {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .class-pill {
+      display: inline-flex;
+      margin-top: 18px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      color: #ddd6fe;
+      border: 1px solid rgba(167, 139, 250, 0.25);
+      background: rgba(139, 92, 246, 0.14);
+      font-size: 0.82rem;
+    }
+
+    .form-card {
+      margin-top: 24px;
+      padding: clamp(22px, 4vw, 34px);
+    }
+
+    .section-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .section-heading h3 {
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      letter-spacing: -0.035em;
+    }
+
+    .section-heading p {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .api-config {
+      min-width: min(100%, 340px);
+    }
+
+    .api-config label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .api-config input {
+      width: 100%;
+      padding: 11px 13px;
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 12px;
+      color: var(--text);
+      background: rgba(7,17,31,.55);
+      outline: none;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field.wide {
+      grid-column: span 2;
+    }
+
+    .field label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #e7eaff;
+    }
+
+    .field small {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.69rem;
+    }
+
+    input,
+    select {
+      min-height: 48px;
+      width: 100%;
+      padding: 0 14px;
+      color: var(--text);
+      background: rgba(7, 17, 31, 0.58);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-sm);
+      outline: none;
+      transition: 0.2s ease;
+    }
+
+    select option {
+      color: #111827;
+      background: #ffffff;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: rgba(34, 211, 238, 0.8);
+      box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    button {
+      min-height: 50px;
+      border: 0;
+      border-radius: 14px;
+      padding: 0 20px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+    }
+
+    .secondary-btn {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.11);
+    }
+
+    .primary-btn {
+      min-width: 200px;
+      color: #07111f;
+      background: linear-gradient(90deg, #a78bfa, #67e8f9);
+      box-shadow: 0 14px 35px rgba(34, 211, 238, 0.2);
+    }
+
+    .primary-btn:disabled {
+      opacity: 0.65;
+      cursor: wait;
+      transform: none;
+    }
+
+    .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(7, 17, 31, 0.25);
+      border-top-color: #07111f;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    .primary-btn.loading .spinner {
+      display: inline-block;
+    }
+
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 20;
+      max-width: 390px;
+      padding: 15px 17px;
+      border-radius: 14px;
+      color: var(--text);
+      background: rgba(16, 27, 51, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      box-shadow: var(--shadow);
+      transform: translateY(130%);
+      opacity: 0;
+      transition: 0.3s ease;
+      backdrop-filter: blur(18px);
+      line-height: 1.5;
+      font-size: 0.87rem;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.error {
+      border-color: rgba(251, 113, 133, 0.4);
+    }
+
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @media (max-width: 1020px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      .page-shell {
+        width: min(100% - 20px, 1240px);
+        padding-top: 16px;
+      }
+
+      .topbar,
+      .section-heading {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .api-status {
+        width: fit-content;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field.wide {
+        grid-column: span 1;
+      }
+
+      .stat-row {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        flex-direction: column-reverse;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">🎓</div>
+        <div>
+          <h1>Student Performance AI</h1>
+          <p>FastAPI + PyCaret prediction dashboard</p>
+        </div>
+      </div>
+
+      <div class="api-status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Ready to connect</span>
+      </div>
+    </header>
+
+    <section class="hero">
+      <article class="glass-card intro-card">
+        <div>
+          <span class="eyebrow">✦ Intelligent academic insight</span>
+
+          <h2>
+            Predict the student's
+            <span class="gradient-text">grade class.</span>
+          </h2>
+
+          <p class="lead">
+            Enter the student's academic profile, attendance, and activity data.
+            The trained PyCaret classification model will return the predicted
+            grade instantly through your FastAPI endpoint.
+          </p>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat">
+            <strong>13</strong>
+            <span>Student features</span>
+          </div>
+          <div class="stat">
+            <strong>5</strong>
+            <span>Possible grade classes</span>
+          </div>
+          <div class="stat">
+            <strong>Live</strong>
+            <span>FastAPI prediction</span>
+          </div>
+        </div>
+      </article>
+
+      <aside class="glass-card result-card">
+        <div class="result-heading">
+          <h3>Prediction result</h3>
+          <span class="result-badge">AI generated</span>
+        </div>
+
+        <div class="result-empty" id="resultEmpty">
+          <div>
+            <div class="icon">✨</div>
+            <h4>Your result will appear here</h4>
+            <p>
+              Complete the student profile below, then click
+              <strong>Predict Grade</strong>.
+            </p>
+          </div>
+        </div>
+
+        <div class="result-content" id="resultContent">
+          <div>
+            <div class="grade-orb" id="gradeOrb">A</div>
+            <h4 class="result-title" id="resultTitle">Predicted Grade: A</h4>
+            <p class="result-subtitle" id="resultSubtitle">
+              The model completed the prediction successfully.
+            </p>
+            <span class="class-pill" id="classPill">GradeClass: 0</span>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="glass-card form-card">
+      <div class="section-heading">
+        <div>
+          <h3>Student profile</h3>
+          <p>Provide the same feature format used when training your model.</p>
+        </div>
+
+        <div class="api-config">
+          <label for="apiUrl">FastAPI prediction endpoint</label>
+          <input
+            id="apiUrl"
+            type="url"
+            value="http://127.0.0.1:8000/predict"
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
+      <form id="predictionForm">
+        <div class="form-grid">
+          <div class="field">
+            <label for="Age">Age <small>years</small></label>
+            <input id="Age" name="Age" type="number" min="1" max="100" value="17" required />
+          </div>
+
+          <div class="field">
+            <label for="StudyTimeWeekly">Study time <small>hours/week</small></label>
+            <input id="StudyTimeWeekly" name="StudyTimeWeekly" type="number" min="0" step="0.1" value="10" required />
+          </div>
+
+          <div class="field">
+            <label for="Absences">Absences <small>count</small></label>
+            <input id="Absences" name="Absences" type="number" min="0" value="3" required />
+          </div>
+
+          <div class="field">
+            <label for="GPA">GPA <small>numeric</small></label>
+            <input id="GPA" name="GPA" type="number" min="0" max="4" step="0.01" value="3.2" required />
+          </div>
+
+          <div class="field">
+            <label for="Gender">Gender</label>
+            <select id="Gender" name="Gender" required>
+              <option value="0">Female — 0</option>
+              <option value="1">Male — 1</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="Ethnicity">Ethnicity</label>
+            <select id="Ethnicity" name="Ethnicity" required>
+              <option value="1">Asian — 1</option>
+              <option value="2">African American — 2</option>
+              <option value="3">Caucasian — 3</option>
+              <option value="4">Hispanic — 4</option>
+              <option value="5">Other — 5</option>
+              <option value="6">Unknown — 6</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="ParentalEducation">Parental education</label>
+            <select id="ParentalEducation" name="ParentalEducation" required>
+              <option value="0">No — 0</option>
+              <option value="1">Yes — 1</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="ParentalSupport">Parental support</label>
+            <select id="ParentalSupport" name="ParentalSupport" required>
+              <option value="0">No — 0</option>
+              <option value="1">Yes — 1</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="Tutoring">Tutoring</label>
+            <select id="Tutoring" name="Tutoring" required>
+              <option value="0">No — 0</option>
+              <option value="1">Yes — 1</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="Extracurricular">Extracurricular</label>
+            <select id="Extracurricular" name="Extracurricular" required>
+              <option value="0">No — 0</option>
+              <option value="1">Yes — 1</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="Sports">Sports</label>
+            <select id="Sports" name="Sports" required>
+              <option value="0">No — 0</option>
+              <option value="1">Yes — 1</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="Music">Music</label>
+            <select id="Music" name="Music" required>
+              <option value="0">No — 0</option>
+              <option value="1">Yes — 1</option>
+            </select>
+          </div>
+
+          <div class="field wide">
+            <label for="Volunteering">Volunteering</label>
+            <select id="Volunteering" name="Volunteering" required>
+              <option value="0">No — 0</option>
+              <option value="1">Yes — 1</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="reset" class="secondary-btn" id="resetBtn">
+            Reset form
+          </button>
+
+          <button type="submit" class="primary-btn" id="predictBtn">
+            <span class="spinner"></span>
+            <span id="buttonText">Predict Grade</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <p class="footer">
+      Student Performance Predictor · Local FastAPI endpoint · PyCaret classification model
+    </p>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const form = document.getElementById("predictionForm");
+    const apiUrlInput = document.getElementById("apiUrl");
+    const predictBtn = document.getElementById("predictBtn");
+    const buttonText = document.getElementById("buttonText");
+    const resultEmpty = document.getElementById("resultEmpty");
+    const resultContent = document.getElementById("resultContent");
+    const gradeOrb = document.getElementById("gradeOrb");
+    const resultTitle = document.getElementById("resultTitle");
+    const resultSubtitle = document.getElementById("resultSubtitle");
+    const classPill = document.getElementById("classPill");
+    const toast = document.getElementById("toast");
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+
+    const numericFields = new Set([
+      "Age",
+      "StudyTimeWeekly",
+      "Absences",
+      "GPA",
+      "Gender",
+      "Ethnicity",
+      "ParentalEducation",
+      "Tutoring",
+      "ParentalSupport",
+      "Extracurricular",
+      "Sports",
+      "Music",
+      "Volunteering"
+    ]);
+
+    function showToast(message, type = "normal") {
+      toast.textContent = message;
+      toast.className = `toast show ${type === "error" ? "error" : ""}`;
+
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => {
+        toast.className = "toast";
+      }, 4600);
+    }
+
+    function setLoading(isLoading) {
+      predictBtn.disabled = isLoading;
+      predictBtn.classList.toggle("loading", isLoading);
+      buttonText.textContent = isLoading ? "Analyzing..." : "Predict Grade";
+    }
+
+    function setStatus(state, text) {
+      statusDot.className = `status-dot ${state}`;
+      statusText.textContent = text;
+    }
+
+    function showResult(grade, gradeClass) {
+      gradeOrb.textContent = grade;
+      resultTitle.textContent = `Predicted Grade: ${grade}`;
+      resultSubtitle.textContent =
+        "The model processed the student's information and returned this predicted grade.";
+      classPill.textContent = `GradeClass: ${gradeClass}`;
+
+      resultEmpty.style.display = "none";
+      resultContent.classList.add("show");
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const apiUrl = apiUrlInput.value.trim();
+
+      if (!apiUrl) {
+        showToast("Please enter the FastAPI prediction endpoint.", "error");
+        return;
+      }
+
+      const formData = new FormData(form);
+      const params = new URLSearchParams();
+
+      for (const [key, value] of formData.entries()) {
+        if (numericFields.has(key)) {
+          const parsed = Number(value);
+
+          if (Number.isNaN(parsed)) {
+            showToast(`${key} must contain a valid number.`, "error");
+            return;
+          }
+
+          params.append(key, String(parsed));
+        } else {
+          params.append(key, value);
+        }
+      }
+
+      setLoading(true);
+      setStatus("", "Connecting to API...");
+
+      try {
+        const separator = apiUrl.includes("?") ? "&" : "?";
+        const response = await fetch(`${apiUrl}${separator}${params.toString()}`, {
+          method: "GET",
+          headers: {
+            Accept: "application/json"
+          }
+        });
+
+        let payload;
+
+        try {
+          payload = await response.json();
+        } catch {
+          payload = null;
+        }
+
+        if (!response.ok) {
+          const details = payload?.detail
+            ? JSON.stringify(payload.detail)
+            : `HTTP ${response.status}`;
+
+          throw new Error(details);
+        }
+
+        if (
+          payload === null ||
+          payload.Grade === undefined ||
+          payload.GradeClass === undefined
+        ) {
+          throw new Error("The API response does not contain Grade and GradeClass.");
+        }
+
+        showResult(payload.Grade, payload.GradeClass);
+        setStatus("online", "API connected");
+        showToast("Prediction completed successfully.");
+      } catch (error) {
+        console.error(error);
+        setStatus("offline", "API connection failed");
+
+        showToast(
+          `Prediction failed: ${error.message}. Make sure FastAPI is running on port 8000.`,
+          "error"
+        );
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    form.addEventListener("reset", () => {
+      window.setTimeout(() => {
+        resultContent.classList.remove("show");
+        resultEmpty.style.display = "grid";
+        setStatus("", "Ready to connect");
+      }, 0);
+    });
+  </script>
+</body>
+</html>

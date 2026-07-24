@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Student Management System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px;
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            border: none;
+            padding: 10px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+            margin-right: 5px;
+        }
+
+        .add-button {
+            background-color: #198754;
+            color: white;
+        }
+
+        .update-button {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        .delete-button {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .refresh-button {
+            background-color: #6c757d;
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #dddddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #212529;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .message {
+            display: none;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .success {
+            display: block;
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .error {
+            display: block;
+            background-color: #f8d7da;
+            color: #842029;
+        }
+
+        @media (max-width: 700px) {
+            table {
+                font-size: 14px;
+            }
+
+            button {
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Student Management System</h1>
+
+    <div id="message" class="message"></div>
+
+    <!-- Add Student -->
+    <div class="card">
+        <h2>Add Student</h2>
+
+        <form id="addStudentForm">
+
+            <div class="form-group">
+                <label for="studentId">Student ID</label>
+                <input
+                    type="number"
+                    id="studentId"
+                    placeholder="Enter student ID"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="studentName">Student Name</label>
+                <input
+                    type="text"
+                    id="studentName"
+                    placeholder="Enter student name"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="studentGrade">Student Grade</label>
+                <input
+                    type="number"
+                    id="studentGrade"
+                    placeholder="Enter student grade"
+                    required
+                >
+            </div>
+
+            <button type="submit" class="add-button">
+                Add Student
+            </button>
+
+        </form>
+    </div>
+
+    <!-- Student List -->
+    <div class="card">
+        <h2>Students</h2>
+
+        <button onclick="loadStudents()" class="refresh-button">
+            Refresh Students
+        </button>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Grade</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody id="studentsTableBody">
+                <!-- Students will appear here -->
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    const API_URL = "http://127.0.0.1:8000";
+
+    const messageBox = document.getElementById("message");
+    const studentsTableBody = document.getElementById(
+        "studentsTableBody"
+    );
+
+    function showMessage(message, type) {
+        messageBox.textContent = message;
+        messageBox.className = `message ${type}`;
+
+        setTimeout(() => {
+            messageBox.style.display = "none";
+        }, 3000);
+    }
+
+    // GET all students
+    async function loadStudents() {
+        try {
+            const response = await fetch(`${API_URL}/`);
+
+            if (!response.ok) {
+                throw new Error("Could not load students");
+            }
+
+            const students = await response.json();
+
+            studentsTableBody.innerHTML = "";
+
+            students.forEach(student => {
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+                    <td>${student.id}</td>
+
+                    <td>
+                        <input
+                            type="text"
+                            id="name-${student.id}"
+                            value="${student.name}"
+                        >
+                    </td>
+
+                    <td>
+                        <input
+                            type="number"
+                            id="grade-${student.id}"
+                            value="${student.grade}"
+                        >
+                    </td>
+
+                    <td>
+                        <button
+                            class="update-button"
+                            onclick="updateStudent(${student.id})"
+                        >
+                            Update
+                        </button>
+
+                        <button
+                            class="delete-button"
+                            onclick="deleteStudent(${student.id})"
+                        >
+                            Delete
+                        </button>
+                    </td>
+                `;
+
+                studentsTableBody.appendChild(row);
+            });
+
+        } catch (error) {
+            showMessage(
+                `Error: ${error.message}. Make sure FastAPI is running.`,
+                "error"
+            );
+        }
+    }
+
+    // POST a new student
+    document
+        .getElementById("addStudentForm")
+        .addEventListener("submit", async function(event) {
+
+            event.preventDefault();
+
+            const student = {
+                id: Number(
+                    document.getElementById("studentId").value
+                ),
+                name: document
+                    .getElementById("studentName")
+                    .value
+                    .trim(),
+                grade: Number(
+                    document.getElementById("studentGrade").value
+                )
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/students/`, {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify(student)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+
+                    throw new Error(
+                        JSON.stringify(errorData.detail)
+                    );
+                }
+
+                showMessage(
+                    "Student added successfully.",
+                    "success"
+                );
+
+                document
+                    .getElementById("addStudentForm")
+                    .reset();
+
+                loadStudents();
+
+            } catch (error) {
+                showMessage(
+                    `Error adding student: ${error.message}`,
+                    "error"
+                );
+            }
+        });
+
+    // PUT update student
+    async function updateStudent(studentId) {
+        const name = document
+            .getElementById(`name-${studentId}`)
+            .value
+            .trim();
+
+        const grade = Number(
+            document.getElementById(`grade-${studentId}`).value
+        );
+
+        const updatedStudent = {
+            id: studentId,
+            name: name,
+            grade: grade
+        };
+
+        try {
+            const response = await fetch(
+                `${API_URL}/students/${studentId}`,
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify(updatedStudent)
+                }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json();
+
+                throw new Error(
+                    JSON.stringify(errorData.detail)
+                );
+            }
+
+            const result = await response.json();
+
+            if (result.message === "Student not found") {
+                throw new Error(result.message);
+            }
+
+            showMessage(
+                "Student updated successfully.",
+                "success"
+            );
+
+            loadStudents();
+
+        } catch (error) {
+            showMessage(
+                `Error updating student: ${error.message}`,
+                "error"
+            );
+        }
+    }
+
+    // DELETE student
+    async function deleteStudent(studentId) {
+        const confirmed = confirm(
+            `Are you sure you want to delete student ${studentId}?`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `${API_URL}/students/${studentId}`,
+                {
+                    method: "DELETE"
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("Could not delete student");
+            }
+
+            const result = await response.json();
+
+            if (result.message === "Student not found") {
+                throw new Error(result.message);
+            }
+
+            showMessage(
+                "Student deleted successfully.",
+                "success"
+            );
+
+            loadStudents();
+
+        } catch (error) {
+            showMessage(
+                `Error deleting student: ${error.message}`,
+                "error"
+            );
+        }
+    }
+
+    // Load students when the page opens
+    loadStudents();
+</script>
+
+</body>
+</html>
